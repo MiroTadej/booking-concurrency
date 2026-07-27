@@ -1,0 +1,17 @@
+{
+  "name": "booking-concurrency",
+  "version": "1.0.0",
+  "private": true,
+  "description": "How a PostgreSQL EXCLUDE constraint makes double-booking impossible — with the test that proves it.",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down -v"
+  },
+  "dependencies": {
+    "pg": "^8.22.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
