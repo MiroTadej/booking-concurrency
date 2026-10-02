@@ -102,6 +102,21 @@ await assert.rejects(
 );
 ```
 
+```mermaid
+sequenceDiagram
+    participant A as Transaction A
+    participant DB as bookings (EXCLUDE USING gist)
+    participant B as Transaction B
+    A->>DB: INSERT room 101, 1-5 Aug (confirmed)
+    B->>DB: INSERT room 101, 3-7 Aug (confirmed)
+    Note over DB: B overlaps A's uncommitted row, so B blocks
+    A->>DB: COMMIT
+    DB-->>B: error 23P01 (bookings_no_overlap)
+    Note over B: a service would map 23P01 to a 409
+    B->>DB: ROLLBACK
+    Note over DB: one confirmed row remains
+```
+
 Then the guarantee, stated as a count:
 
 ```js
@@ -128,6 +143,26 @@ than portability the project is not going to use, and the alternative —
 "we check carefully in the application" — is the thing that doesn't survive
 contact with two simultaneous users.
 
+## Security notes
+
+- **Parameterised SQL only.** Every query in the tests passes values as `$1`,
+  `$2`, ... parameters; nothing is built by string concatenation.
+- **The guarantee lives in the database.** The `EXCLUDE` constraint holds
+  whatever the application does, so a missed check, a retry or a second code
+  path cannot sell a room twice. An application-level availability check is
+  still useful for friendly errors, but the guarantee does not rest on it.
+- **A conflict is an outcome, not a crash.** `SQLSTATE 23P01` (with the
+  constraint name asserted) is the loser's expected result. A real service
+  would map it to a generic `409 Conflict` and keep the detail in server logs.
+  That mapping is not in this extract.
+- **No secrets.** The compose file's `postgres` password is a disposable local
+  value for a throwaway container. Override with `DATABASE_URL` for anything
+  else, and never commit real credentials.
+- **Deliberately omitted.** Authentication, authorisation (RBAC and ownership
+  checks), input validation, rate limiting, payments, HTTP routes and guest
+  data are not here. This extract demonstrates one database invariant, not a
+  hardened service.
+
 ## What's here
 
 ```
@@ -144,10 +179,10 @@ runner, so the SQL is the subject rather than the scaffolding.
 ## Context
 
 This is a self-contained extract, published so the reasoning can be read
-without access to a private repository. The production system it comes from
-adds multi-property RBAC, a Stripe payment and refund lifecycle with idempotent
-webhooks, housekeeping and finance back-office modules, and a 24-suite test
-suite.
+without access to a private repository. It contains only the schema, the
+constraint and the tests. The system it comes from, Grand Stay, is a PERN hotel
+booking platform that runs locally and is not publicly hosted; the case study
+describes it.
 
 **[Full case study →](https://veritydigital.ie/case-studies/hotel-booking-platform)**
 
@@ -164,7 +199,7 @@ of the technique. What is reserved is this particular expression of it.
 
 ---
 
-**Miroslav Tadej** — Full-stack engineer, Dublin.
+**Miroslav Tadej** — Full Stack Software Engineer, Dublin.
 [veritydigital.ie](https://veritydigital.ie) ·
 [LinkedIn](https://www.linkedin.com/in/miroslavtadej) ·
 [GitHub](https://github.com/MiroTadej)
