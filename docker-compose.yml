@@ -1,4 +1,4 @@
-# Disposable PostgreSQL for the test suite. Port 5433 to avoid clashing with a
+# Disposable PostgreSQL for the test suite. Host port 5460 (container 5432) to avoid clashing with a
 # local install on 5432. Override with DATABASE_URL if 5460 is taken.
 services:
   db:
